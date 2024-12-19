@@ -95,12 +95,27 @@ const mutation = new GraphQLObjectType({
         deleteClient: {
             type: ClientType,
             args: {
-                id: { type: GraphQLNonNull(GraphQLID) }
+              id: { type: GraphQLNonNull(GraphQLID) },
             },
-            resolve(parent, args) {
-                return Client.findByIdAndDelete(args.id);
-            }
-        },
+            async resolve(parent, args) {
+              try {
+                // Delete all projects associated with the client
+                await Project.deleteMany({ clientId: args.id });
+          
+                // Delete the client itself
+                const deletedClient = await Client.findByIdAndDelete(args.id);
+          
+                if (!deletedClient) {
+                  throw new Error("Client not found");
+                }
+          
+                return deletedClient;
+              } catch (error) {
+                throw new Error("Error deleting client and associated projects: " + error.message);
+              }
+            },
+          },
+          
         addProject: {
             type: ProjectType,
             args: {
@@ -132,12 +147,21 @@ const mutation = new GraphQLObjectType({
         deleteProject: {
             type: ProjectType,
             args: {
-                id: { type: GraphQLNonNull(GraphQLID) }
+              id: { type: GraphQLNonNull(GraphQLID) },
             },
-            resolve(parent, args) {
-                return Project.findByIdAndDelete(args.id);
-            }
-        },
+            async resolve(parent, args) {
+              try {
+                // Delete the project by ID
+                const deletedProject = await Project.findByIdAndDelete(args.id);
+          
+                // Return the deleted project
+                return deletedProject;
+              } catch (error) {
+                throw new Error("Error deleting project: " + error.message);
+              }
+            },
+          },
+          
         updateProject: {
             type: ProjectType,
             args: {
